@@ -113,7 +113,7 @@ public class Main extends Application{
         ChoiceBox<String> compressionTechnique = new ChoiceBox<>();
         compressionTechnique.getItems().addAll("LZ77", "LZW", "Huffman");
         compressionTechnique.setValue("-");
-        compressionTechnique.setStyle("-fx-translate-y: 60px");
+        compressionTechnique.setStyle("-fx-translate-y: 60px; -fx-translate-x: 20px");
         Label ChoiceBoxLabel = new Label("compression technique:");
         App.getChildren().add(ChoiceBoxLabel);
         ChoiceBoxLabel.setStyle("-fx-translate-y: 110px; -fx-translate-x: -100px; -fx-font-weight: bold; -fx-font-family: 'Comic Sans MS';");
