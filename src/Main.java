@@ -111,7 +111,7 @@ public class Main extends Application{
         entry.setMaxWidth(300);
         entry.setStyle("-fx-translate-y: 50px;");
         ChoiceBox<String> compressionTechnique = new ChoiceBox<>();
-        compressionTechnique.getItems().addAll("LZ77", "LZW");
+        compressionTechnique.getItems().addAll("LZ77", "LZW", "Huffman");
         compressionTechnique.setValue("-");
         compressionTechnique.setStyle("-fx-translate-y: 60px");
         Label ChoiceBoxLabel = new Label("compression technique:");
@@ -134,8 +134,11 @@ public class Main extends Application{
                             SaveToBinaryFile(t);
                         }
                     } else {
-                        TheCompressor = new LZWCompressor();
-
+                        if(compressionTechnique.getValue().equals("LZW"))
+                            TheCompressor = new LZWCompressor();
+                        else{
+                            TheCompressor = new huffmanCompressor();
+                        }
 
                         String fileDataInLines = "";
                         ArrayList<String> fileData = ReadFile(entry.getText());
@@ -166,8 +169,11 @@ public class Main extends Application{
                     decompressionStrategy TheDecompressor;
                     if (compressionTechnique.getValue().equals("LZW")) {
                         TheDecompressor = new LZWDecompressor();
-                    } else {
+                    } else if(compressionTechnique.getValue().equals("LZ77")){
                         TheDecompressor = new decompressor();
+                    }
+                    else{
+                        TheDecompressor = new huffmanDecompressor();
                     }
                     String dataToBeDecompressed = ReadFromBinaryFile(entry.getText());
                     String decompressedData = TheDecompressor.decompress(dataToBeDecompressed);
