@@ -111,7 +111,7 @@ public class Main extends Application{
         entry.setMaxWidth(300);
         entry.setStyle("-fx-translate-y: 50px;");
         ChoiceBox<String> compressionTechnique = new ChoiceBox<>();
-        compressionTechnique.getItems().addAll("LZ77", "LZW", "Huffman");
+        compressionTechnique.getItems().addAll("LZ77", "LZW", "Huffman", "VQ");
         compressionTechnique.setValue("-");
         compressionTechnique.setStyle("-fx-translate-y: 60px; -fx-translate-x: 20px");
         Label ChoiceBoxLabel = new Label("compression technique:");
@@ -125,6 +125,14 @@ public class Main extends Application{
             if(!compressionTechnique.getValue().equals("-")) {
                 File f = new File(entry.getText());
                 if(f.exists()) {
+                    if(compressionTechnique.getValue().equals("VQ")){
+                        VectorCompressor vq = new VectorCompressor();
+
+                        vq.comp(entry.getText());
+                        entry.clear();
+                        compressionTechnique.setValue("-");
+                    }
+                    else{
                     compressionStrategy TheCompressor;
                     if (compressionTechnique.getValue().equals("LZ77")) {
                         TheCompressor = new compressor();
@@ -152,6 +160,8 @@ public class Main extends Application{
                     compressionTechnique.setValue("-");
 
                 }
+                }
+
                 else{
                     System.out.println("Please choose an existent file");
                 }
