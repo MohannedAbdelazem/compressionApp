@@ -1,226 +1,221 @@
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.*;
-import java.util.Arrays;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Random;
 
-public class VectorCompressor{
-
-
-    public static double[][] generateCodebook(double[][] data, int numCodevectors) {
-        int numSamples = data.length;
-        int numFeatures = data[0].length;
-
-        double[][] codebook = new double[numCodevectors][numFeatures];
-
-        // Initialize codebook with random vectors from the input data
-        for (int i = 0; i < numCodevectors; i++) {
-            int randomIndex = (int) (Math.random() * numSamples);
-            codebook[i] = Arrays.copyOf(data[randomIndex], numFeatures);
-        }
-
-        // Run K-means clustering to update the codebook
-        int iterations = 100;
-        for (int iter = 0; iter < iterations; iter++) {
-            int[] assignments = new int[numSamples];
-
-            // Assign each data point to the nearest code vector
-            for (int i = 0; i < numSamples; i++) {
-                double minDistance = Double.MAX_VALUE;
-                for (int j = 0; j < numCodevectors; j++) {
-                    double distance = euclideanDistance(data[i], codebook[j]);
-                    if (distance < minDistance) {
-                        minDistance = distance;
-                        assignments[i] = j;
-                    }
-                }
-            }
-
-            // Update code vectors based on the assigned data points
-            for (int i = 0; i < numCodevectors; i++) {
-                double[] sum = new double[numFeatures];
-                int count = 0;
-                for (int j = 0; j < numSamples; j++) {
-                    if (assignments[j] == i) {
-                        for (int k = 0; k < numFeatures; k++) {
-                            sum[k] += data[j][k];
-                        }
-                        count++;
-                    }
-                }
-                if (count > 0) {
-                    for (int k = 0; k < numFeatures; k++) {
-                        codebook[i][k] = sum[k] / count;
-                    }
-                }
-            }
-        }
-
-        return codebook;
-    }
-
-    public static double[][] vectorQuantizationEncode(double[][] data, double[][] codebook) {
-        int numSamples = data.length;
-        int numCodevectors = codebook.length;
-        int numFeatures = data[0].length;
-
-        double[][] encodedData = new double[numSamples][numCodevectors];
-
-        // Assign each data point to the nearest code vector
-        for (int i = 0; i < numSamples; i++) {
-            double minDistance = Double.MAX_VALUE;
-            int minIndex = -1;
-            for (int j = 0; j < numCodevectors; j++) {
-                double distance = euclideanDistance(data[i], codebook[j]);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    minIndex = j;
-                }
-            }
-            encodedData[i][minIndex] = 1.0;
-        }
-
-        return encodedData;
-    }
-
-    public static double[][] vectorQuantizationDecode(double[][] encodedData, double[][] codebook) {
-        int numSamples = encodedData.length;
-        int numCodevectors = codebook.length;
-        int numFeatures = codebook[0].length;
-
-        double[][] decodedData = new double[numSamples][numFeatures];
-
-        for (int i = 0; i < numSamples; i++) {
-            for (int j = 0; j < numCodevectors; j++) {
-                for (int k = 0; k < numFeatures; k++) {
-                    decodedData[i][k] += encodedData[i][j] * codebook[j][k];
-                }
-            }
-        }
-
-        return decodedData;
-    }
-
-    public static double euclideanDistance(double[] vector1, double[] vector2) {
-        double sum = 0.0;
-        for (int i = 0; i < vector1.length; i++) {
-            sum += Math.pow(vector1[i] - vector2[i], 2);
-        }
-        return Math.sqrt(sum);
-    }
-
-    public static void saveEncodedDataToBinaryFile(double[][] encodedData, String fileName) {
-        try (DataOutputStream dos = new DataOutputStream(new FileOutputStream(fileName))) {
-            int numSamples = encodedData.length;
-            int numCodevectors = encodedData[0].length;
-
-            for (int i = 0; i < numSamples; i++) {
-                for (int j = 0; j < numCodevectors; j++) {
-                    dos.writeDouble(encodedData[i][j]);
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static double[][] loadEncodedDataFromBinaryFile(String fileName, int numSamples, int numCodevectors) {
-        double[][] encodedData = new double[numSamples][numCodevectors];
-
-        try (DataInputStream dis = new DataInputStream(new FileInputStream(fileName))) {
-            for (int i = 0; i < numSamples; i++) {
-                for (int j = 0; j < numCodevectors; j++) {
-                    encodedData[i][j] = dis.readDouble();
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return encodedData;
-    }
-
-    public static void saveDecodedDataToImageFile(double[][] decodedData, String fileName, int width, int height) {
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
-
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; j++) {
-                int grayValue = (int) (decodedData[i][j] * 255);
-                int rgb = (grayValue << 16) | (grayValue << 8) | grayValue;
-                image.setRGB(j, i, rgb);
-            }
-        }
-
-        try {
-            ImageIO.write(image, "jpg", new File(fileName));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static double calculateReconstructionError(double[][] originalData, double[][] decodedData) {
-        int numSamples = originalData.length;
-        int numFeatures = originalData[0].length;
-
-        double sumSquaredError = 0.0;
-
-        for (int i = 0; i < numSamples; i++) {
-            for (int j = 0; j < numFeatures; j++) {
-                sumSquaredError += Math.pow(originalData[i][j] - decodedData[i][j], 2);
-            }
-        }
-
-        return Math.sqrt(sumSquaredError / (numSamples * numFeatures));
-    }
-
-    public static double[][] loadImageAsGrayArray(String imagePath) {
-        try {
-            BufferedImage image = ImageIO.read(new File(imagePath));
-            int width = image.getWidth();
-            int height = image.getHeight();
-            double[][] grayArray = new double[height][width];
-
-            for (int i = 0; i < height; i++) {
-                for (int j = 0; j < width; j++) {
-                    int rgb = image.getRGB(j, i);
-                    int red = (rgb >> 16) & 0xFF;
-                    int green = (rgb >> 8) & 0xFF;
-                    int blue = rgb & 0xFF;
-                    int grayValue = (red + green + blue) / 3; // Simple conversion to grayscale
-                    grayArray[i][j] = grayValue / 255.0; // Normalize to [0, 1]
-                }
-            }
-
-            return grayArray;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-    public void comp(String path){
-        String imagePath = path;
-        double[][] imageAsArray = loadImageAsGrayArray(imagePath);
-
-        // Generate a codebook using K-means clustering
-        int codebookSize = 500;
-        double[][] codebook = generateCodebook(imageAsArray, codebookSize);
-
-        // Encode the image data using vector quantization
-        double[][] encodedData = vectorQuantizationEncode(imageAsArray, codebook);
-
-        // Save the encoded data to a binary file
-        saveEncodedDataToBinaryFile(encodedData, "encoded_data.bin");
-
-        // Load the encoded data from the binary file (for demonstration)
-        double[][] loadedEncodedData = loadEncodedDataFromBinaryFile("encoded_data.bin", imageAsArray.length, codebookSize);
-
-        // Decode the loaded encoded data
-        double[][] decodedData = vectorQuantizationDecode(loadedEncodedData, codebook);
-
-        // Check the reconstruction error
-        double reconstructionError = calculateReconstructionError(imageAsArray, decodedData);
-        System.out.println("Reconstruction Error: " + reconstructionError);
-
-        // Save the decoded data to a JPG file
-        saveDecodedDataToImageFile(decodedData, "decoded_image.jpg", imageAsArray[0].length, imageAsArray.length);
+class QuantizedImage{
+    public BufferedImage[] img;
+    public double ErrorPercentage;
+    QuantizedImage(BufferedImage[] img, double ErrorPercentage){
+        this.img = img;
+        this.ErrorPercentage = ErrorPercentage;
     }
 }
+public class VectorCompressor {
+    public BufferedImage[] splitImage(BufferedImage im, int blockSize){
+        int width = im.getWidth();
+        int height = im.getHeight();
+        int xBlocks = width/blockSize;
+        int yBlocks = height/blockSize;
+
+        BufferedImage[] result = new BufferedImage[xBlocks*yBlocks];
+        for(int i = 0;i<xBlocks;i++){
+            for(int j = 0;j<yBlocks;j++){
+                int x = i*blockSize;
+                int y = j*blockSize;
+
+                BufferedImage block = im.getSubimage(x, y, blockSize, blockSize);
+                result[i*yBlocks + j] = block;
+            }
+        }
+
+        return result;
+    }
+    public void saveBlocks(BufferedImage[] blocks, String outputDirectoryPath) {
+        File outputDirectory = new File(outputDirectoryPath);
+        outputDirectory.mkdirs();
+
+        for (int i = 0; i < blocks.length; i++) {
+            try {
+                String outputPath = outputDirectoryPath + "/block_" + (i + 1) + ".png";
+                File outputFile = new File(outputPath);
+
+                // Save the block as an image file
+                ImageIO.write(blocks[i], "PNG", outputFile);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public BufferedImage[] generateCodeBook(BufferedImage[] images, int CodeBookSize){
+        int numberOfImages = images.length;
+        Random random = new Random();
+        int[] RandomValues = new int[CodeBookSize];
+        for(int i = 0;i< CodeBookSize;i++){
+            RandomValues[i] = random.nextInt((numberOfImages-0) + 0);
+            for(int k = 0;k<i;k++){
+                if(RandomValues[k] == RandomValues[i]){
+                    i--;
+                    break;
+                }
+            }
+        }
+        BufferedImage[] CodeBook = new BufferedImage[CodeBookSize];
+        for(int i = 0;i<CodeBookSize;i++){
+            CodeBook[i] = images[RandomValues[i]];
+        }
+        return CodeBook;
+    }
+
+    public double CompareImages(BufferedImage img1, BufferedImage img2, int colorDifferenceThreshold) {
+        int width = img1.getWidth();
+        int height = img1.getHeight();
+        int numberOfPixels = width * height;
+        int similarPixels = 0;
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int p1 = img1.getRGB(x, y);
+                int p2 = img2.getRGB(x, y);
+
+                // Extract RGB components
+                int r1 = (p1 >> 16) & 0xFF;
+                int g1 = (p1 >> 8) & 0xFF;
+                int b1 = p1 & 0xFF;
+
+                int r2 = (p2 >> 16) & 0xFF;
+                int g2 = (p2 >> 8) & 0xFF;
+                int b2 = p2 & 0xFF;
+
+                // Calculate color difference
+                int colorDifference = Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
+
+                // Check if the color difference is below the threshold
+                if (colorDifference <= colorDifferenceThreshold) {
+                    similarPixels++;
+                }
+            }
+        }
+
+        double similarityPercentage = (double) similarPixels / numberOfPixels * 100;
+        return 100 - similarityPercentage; // Return the dissimilarity percentage
+    }
+
+    public QuantizedImage LBG(BufferedImage[] SplitImages, BufferedImage[] CodeBook){
+        double ErrorPercentage = 0;
+        int SplitImageIndex = 0;
+        for(BufferedImage image: SplitImages){
+            Double MinimumError = null;
+            Integer MinImageIndex = null;
+            for(int i = 0;i<CodeBook.length;i++){
+                if(MinimumError == null){
+                    MinimumError = CompareImages(CodeBook[i], image, 50);
+                    MinImageIndex = i;
+                    continue;
+                }
+                if(CompareImages(CodeBook[i], image, 50) < MinimumError){
+                    MinimumError = CompareImages(CodeBook[i], image, 50);
+                    MinImageIndex = i;
+                }
+            }
+            if(MinimumError < 30){
+                System.out.println("Swapped");
+                ErrorPercentage+= MinimumError;
+                SplitImages[SplitImageIndex] = CodeBook[MinImageIndex];
+            }
+            SplitImageIndex++;
+        }
+        QuantizedImage qi = new QuantizedImage(SplitImages, ErrorPercentage);
+        return qi;
+    }
+
+    public QuantizedImage Compress(BufferedImage img, int blockSize, int CodeBookSize, int iterations){
+        Integer MinIndex = null;
+        BufferedImage[] SplitImage = splitImage(img, blockSize);
+        ArrayList<QuantizedImage> quantizedImages= new ArrayList<>();
+        for(int i = 0;i< iterations;i++){
+            BufferedImage[] codeBook = generateCodeBook(SplitImage, CodeBookSize);
+            QuantizedImage qi = LBG(SplitImage, codeBook);
+            quantizedImages.add(qi);
+            if(MinIndex == null){
+                MinIndex = i;
+            }
+            else{
+                if(quantizedImages.get(MinIndex).ErrorPercentage > qi.ErrorPercentage){
+                    MinIndex = i;
+                }
+            }
+        }
+
+        return quantizedImages.get(MinIndex);
+    }
+
+    public BufferedImage combineImages(BufferedImage[] blocks, int originalWidth, int originalHeight, int blockSize) {
+        int xBlocks = originalWidth / blockSize;
+        int yBlocks = originalHeight / blockSize;
+
+        BufferedImage result = new BufferedImage(originalWidth, originalHeight, BufferedImage.TYPE_INT_RGB);
+
+        for (int i = 0; i < xBlocks; i++) {
+            for (int j = 0; j < yBlocks; j++) {
+                int x = i * blockSize;
+                int y = j * blockSize;
+
+                BufferedImage block = blocks[i * yBlocks + j];
+                result.getRaster().setPixels(x, y, blockSize, blockSize, block.getRaster().getPixels(0, 0, blockSize, blockSize, (int[]) null));
+            }
+        }
+
+        return result;
+    }
+    public static void saveImageToBinaryFile(BufferedImage image, String filePath) {
+        try {
+            // Create a ByteArrayOutputStream to store the image bytes
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+
+            // Write the image to the ByteArrayOutputStream in PNG format (you can choose a different format)
+            ImageIO.write(image, "png", byteArrayOutputStream);
+
+            // Get the byte array from the ByteArrayOutputStream
+            byte[] imageBytes = byteArrayOutputStream.toByteArray();
+
+            // Write the byte array to a binary file
+            try (FileOutputStream fileOutputStream = new FileOutputStream(filePath)) {
+                fileOutputStream.write(imageBytes);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public String compress(String path){
+
+        try {
+            BufferedImage image = ImageIO.read(new File(path));
+            VectorCompressor vc = new VectorCompressor();
+            // public QuantizedImage Compress(BufferedImage img, int blockSize, int CodeBookSize, int iterations){
+            QuantizedImage qi = vc.Compress(image, 2, 20, 500);
+//            vc.saveBlocks(qi.img, "./");
+            System.out.printf("Error percentage is: %f\n", qi.ErrorPercentage);
+
+            BufferedImage img = vc.combineImages(qi.img, image.getWidth(), image.getHeight(), 2);
+            File outputFile = new File("output.png");
+//            Save the block as an image file
+            ImageIO.write(img, "PNG", outputFile);
+            saveImageToBinaryFile(img,"./outputBin.bin");
+
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+
+        return "";
+    }
+
+}
+

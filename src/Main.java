@@ -128,7 +128,7 @@ public class Main extends Application{
                     if(compressionTechnique.getValue().equals("VQ")){
                         VectorCompressor vq = new VectorCompressor();
 
-                        vq.comp(entry.getText());
+                        vq.compress(entry.getText());
                         entry.clear();
                         compressionTechnique.setValue("-");
                     }
@@ -176,6 +176,13 @@ public class Main extends Application{
             if(!compressionTechnique.getValue().equals("-")) {
                 File f = new File(entry.getText());
                 if(f.exists()) {
+                    if(compressionTechnique.getValue().equals("VQ")){
+                        VectorCompressor vQ = new VectorCompressor();
+                        vQ.compress(entry.getText());
+                        entry.clear();
+                        compressionTechnique.setValue("-");
+                    }
+                    else{
                     decompressionStrategy TheDecompressor;
                     if (compressionTechnique.getValue().equals("LZW")) {
                         TheDecompressor = new LZWDecompressor();
@@ -195,9 +202,11 @@ public class Main extends Application{
                     entry.clear();
                     compressionTechnique.setValue("-");
                 }
+                }
                 else{
                     System.out.println("Please choose an existent file");
                 }
+
             }
             else{
                 System.out.println("Please choose between LZW and LZ77");
