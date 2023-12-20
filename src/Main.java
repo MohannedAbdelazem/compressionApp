@@ -1,11 +1,14 @@
+package com.example.compressionapp;
+
 import javafx.application.Application;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-import javafx.scene.media.AudioClip;
-import javafx.scene.media.Media;
-import javafx.scene.media.MediaPlayer;
+//import javafx.scene.media.AudioClip;
+//import javafx.scene.media.Media;
+//import javafx.scene.media.MediaPlayer;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.scene.control.*;
@@ -79,9 +82,12 @@ public class Main extends Application{
         VBox VBForWelcome = new VBox();
         Label l = new Label("Welcome to our compression app");
         VBForWelcome.getChildren().add(l);
-        l.setStyle("-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold; -fx-font-family: 'Comic Sans MS';");
+        l.setStyle("-fx-text-fill: darkblue; -fx-font-size: 20px; -fx-font-weight: bold; -fx-font-family: 'Comic Sans MS';");
         VBForWelcome.setAlignment(Pos.CENTER);
-        VBForWelcome.setStyle("-fx-background-image: url('welcomePic.jpg');");
+
+//        ImageView backgroundImageView = new ImageView("C:/Users/Mohanned/IdeaProjects/compressionApp/src/main/resources/com/example/compressionapp/background.jpg");
+//        VBForWelcome.getChildren().add(backgroundImageView);
+        VBForWelcome.setStyle("-fx-background-image: url('background.jpg');");
         VBForWelcome.setFillWidth(true);
         Scene welcomeScene = new Scene(VBForWelcome);
         stage.setScene(welcomeScene);
@@ -111,7 +117,7 @@ public class Main extends Application{
         entry.setMaxWidth(300);
         entry.setStyle("-fx-translate-y: 50px;");
         ChoiceBox<String> compressionTechnique = new ChoiceBox<>();
-        compressionTechnique.getItems().addAll("LZ77", "LZW", "Huffman", "VQ");
+        compressionTechnique.getItems().addAll("LZ77", "LZW", "Huffman", "VQ", "PC");
         compressionTechnique.setValue("-");
         compressionTechnique.setStyle("-fx-translate-y: 60px; -fx-translate-x: 20px");
         Label ChoiceBoxLabel = new Label("compression technique:");
@@ -129,6 +135,12 @@ public class Main extends Application{
                         VectorCompressor vq = new VectorCompressor();
 
                         vq.compress(entry.getText());
+                        entry.clear();
+                        compressionTechnique.setValue("-");
+                    }
+                    else if(compressionTechnique.getValue().equals("PC")){
+                        predictiveCodingLogic pc = new predictiveCodingLogic();
+                        pc.compressor(entry.getText());
                         entry.clear();
                         compressionTechnique.setValue("-");
                     }
@@ -179,6 +191,12 @@ public class Main extends Application{
                     if(compressionTechnique.getValue().equals("VQ")){
                         VectorCompressor vQ = new VectorCompressor();
                         vQ.compress(entry.getText());
+                        entry.clear();
+                        compressionTechnique.setValue("-");
+                    }
+                    else if(compressionTechnique.getValue().equals("PC")){
+                        predictiveCodingLogic pc = new predictiveCodingLogic();
+                        pc.decompressor(entry.getText());
                         entry.clear();
                         compressionTechnique.setValue("-");
                     }
